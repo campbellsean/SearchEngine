@@ -3,13 +3,15 @@
   <Role name="Web">
     <Instances count="1" />
     <ConfigurationSettings>
-      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=seancampbellsearch;AccountKey=$(_seancampbellsearch.key_)" />
+      <Setting name="APPINSIGHTS_INSTRUMENTATIONKEY" value="ac27008c-538c-4bb5-9487-a6703583dcf9" />
     </ConfigurationSettings>
   </Role>
   <Role name="Worker">
     <Instances count="1" />
     <ConfigurationSettings>
-      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=seancampbellsearch;AccountKey=$(_seancampbellsearch.key_)" />
+      <Setting name="APPINSIGHTS_INSTRUMENTATIONKEY" value="ac27008c-538c-4bb5-9487-a6703583dcf9" />
     </ConfigurationSettings>
   </Role>
 </ServiceConfiguration>

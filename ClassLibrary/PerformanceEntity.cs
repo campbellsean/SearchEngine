@@ -12,7 +12,7 @@ namespace ClassLibrary
         public PerformanceEntity(string url)
         {
             string invertedTicks = string.Format("{0:D19}", DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks);
-            // to order by insert
+            // to order by insert use inverted ticks referenced MSFT design guide
             this.PartitionKey = invertedTicks;
             this.RowKey = url;
         }

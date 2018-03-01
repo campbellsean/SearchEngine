@@ -21,5 +21,8 @@ namespace ClassLibrary
         public DateTime Date { get; set; }
 
         public string PageTitle { get; set; }
+
+        public string Link { get; set; }
+
     }
 }

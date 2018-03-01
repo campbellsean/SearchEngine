@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using ClassLibrary;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Diagnostics;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace Worker
 {
@@ -60,10 +63,59 @@ namespace Worker
 
         private async Task RunAsync(CancellationToken cancellationToken)
         {
-            // TODO: Replace the following with your own logic.
+
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
+               ConfigurationManager.AppSettings["StorageConnectionString"]);
+            StorageManager sm = new StorageManager(storageAccount);
+            URLManager manager = new URLManager(sm);
+
             while (!cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceInformation("Working");
+
+                if (sm.GetSizeOfStartStopQueue() != 0)
+                {
+                    string message = sm.GetStartStopMessage().AsString;
+
+                    if (message.Equals("start"))
+                    {
+                        while (sm.GetSizeOfStartStopQueue() == 0)
+                        {
+                            while (sm.GetSizeOfXMLQueue() != 0 && sm.GetSizeOfStartStopQueue() == 0)
+                            {
+                                Thread.Sleep(50);
+                                CloudQueueMessage queueMessage = sm.GetNextXML();
+                                manager.ParseXML(queueMessage.AsString);
+                                // Delete after processing
+                                sm.DeleteXMLMessage(queueMessage);
+                            }
+
+                            while (sm.GetSizeOfURLQueue() > 20 && sm.GetSizeOfStartStopQueue() == 0) // && sm.GetSizeOfXMLQueue() == 0)
+                            {
+                                // Increments of 20 to reduce time wasted calling size of queue
+                                for (int i = 0; i < 20; i++)
+                                {
+                                    Thread.Sleep(50);
+                                    CloudQueueMessage queueMessage = sm.GetNextURL();
+                                    manager.ParseHTML(queueMessage.AsString);
+                                    // Delete after processing
+                                    sm.DeleteURLMessage(queueMessage);
+                                }
+                                Thread.Sleep(50);
+                            }
+
+                        }
+                    }
+
+                    if (message.Equals("stop"))
+                    {
+                        Thread.Sleep(5000);
+                        while (sm.GetSizeOfStartStopQueue() == 0)
+                        {
+                            Thread.Sleep(5000);
+                        }
+                    }
+                }
+                Thread.Sleep(50);
                 await Task.Delay(1000);
             }
         }

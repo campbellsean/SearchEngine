@@ -4,6 +4,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,8 +25,8 @@ namespace ClassLibrary
         private static CloudTable urlTable;
         private static string urlTableName = "urlInformation";
 
-        private static CloudTable errorTable;
-        private static string errorTableName = "performanceInformation";
+        private static CloudTable performanceTable;
+        private static string performanceTableName = "performanceInformation";
 
         public StorageManager(CloudStorageAccount storageAccount)
         {
@@ -46,52 +47,51 @@ namespace ClassLibrary
             StorageManager.urlTable.CreateIfNotExists();
 
             tableClient = storageAccount.CreateCloudTableClient();
-            StorageManager.errorTable = tableClient.GetTableReference(StorageManager.errorTableName);
-            StorageManager.errorTable.CreateIfNotExists();
+            StorageManager.performanceTable = tableClient.GetTableReference(StorageManager.performanceTableName);
+            StorageManager.performanceTable.CreateIfNotExists();
         }
 
-        public List<string> GetTenErrors()
+        public void GetTenErrors()
         {
             List<string> lastTenLinks = new List<string>();
             TableQuery<PerformanceEntity> tableQuery = new TableQuery<PerformanceEntity>().Take(10);
 
-            var links = StorageManager.errorTable.ExecuteQuery(tableQuery).ToList();
-
-            foreach (URLentity link in links)
+            var links = StorageManager.performanceTable.ExecuteQuery(tableQuery).ToList();
+            /*
+            foreach (PerformanceEntity link in links)
             {
                 if (lastTenLinks.Count >= 10)
                     break;
                 lastTenLinks.Add(link.PageTitle + " | " + link.URL);
             }
             return lastTenLinks;
+            */
+            // return links;
         }
 
-        public int? TotalCrawled()
-        {
-            StorageManager.allurlQueue.FetchAttributes();
-            int? cachedMessageCount = allurlQueue.ApproximateMessageCount;
-            return cachedMessageCount;
-        }
-
-
-        public void InsertPerformance(string link)
-        {
-            CloudQueueMessage message = new CloudQueueMessage(link);
-            StorageManager.allurlQueue.AddMessage(message);
-        }
 
         public CloudQueueMessage GetNextURL()
         {
             CloudQueueMessage message = StorageManager.urlQueue.GetMessage(TimeSpan.FromMinutes(5));
-            StorageManager.urlQueue.DeleteMessage(message);
+            // StorageManager.urlQueue.DeleteMessage(message);
             return message;
+        }
+
+        public void DeleteURLMessage(CloudQueueMessage message)
+        {
+            StorageManager.urlQueue.DeleteMessage(message);
         }
 
         public CloudQueueMessage GetNextXML()
         {
             CloudQueueMessage message = StorageManager.xmlQueue.GetMessage(TimeSpan.FromMinutes(5));
-            StorageManager.xmlQueue.DeleteMessage(message);
+            // StorageManager.xmlQueue.DeleteMessage(message);
             return message;
+        }
+
+        public void DeleteXMLMessage(CloudQueueMessage message)
+        {
+            StorageManager.xmlQueue.DeleteMessage(message);
         }
 
         public CloudQueueMessage GetStartStopMessage()
@@ -106,9 +106,8 @@ namespace ClassLibrary
             StorageManager.startStopQueue.Clear();
             StorageManager.urlQueue.Clear();
             StorageManager.xmlQueue.Clear();
-            StorageManager.allurlQueue.Clear();
             StorageManager.urlTable.DeleteIfExists();
-            StorageManager.errorTable.DeleteIfExists();
+            StorageManager.performanceTable.DeleteIfExists();
         }
 
         public void AddToURLQueue(string messageToAdd)
@@ -129,29 +128,53 @@ namespace ClassLibrary
 
         // Adds link to Table Storage
         // I think this will need to take in multiple values
-        public void AddLinkToTableStorage(string link, string title, DateTime date)
+        public void AddLinkToTableStorage(string link, string word, string title, DateTime date)
         {
-            this.InsertPerformance(link);
-            string hashedLink = Hash(link);
-            URLentity l = new URLentity(hashedLink)
+            if (word.Length > 0)
             {
-                PageTitle = title,
-                Date = date,
-                URL = link
-            };
-            TableOperation insertOperation = TableOperation.Insert(l);
-            StorageManager.urlTable.Execute(insertOperation);
+                WebEntity w = new WebEntity(this.ToAzureKeyString(word), this.Hash(link))
+                {
+                    PageTitle = title,
+                    Date = date,
+                    Link = link
+                };
+                TableOperation insertOperation = TableOperation.Insert(w);
+                try
+                {
+                    StorageManager.urlTable.Execute(insertOperation);
+                }
+                catch
+                {
+                    // except = e;
+                    // log these errors in the error table
+                }
+            }
         }
 
-        // If no date found
-        public void AddLinkToTableStorage(string link, string title)
+        // If no date found then use 02/22/2018
+        public void AddLinkToTableStorage(string link, string title, string word)
         {
-            this.AddLinkToTableStorage(link, title, new DateTime(2018, 2, 22));
+            this.AddLinkToTableStorage(link, word, title, new DateTime(2018, 2, 22));
+        }
+
+        private string ToAzureKeyString(string str)
+        {
+            var sb = new StringBuilder();
+            foreach (var c in str
+                .Where(c => c != '/'
+                            && c != '\\'
+                            && c != '#'
+                            && c != '/'
+                            && c != '?'
+                            && !char.IsControl(c)))
+                sb.Append(c);
+            return sb.ToString();
         }
 
         public void AddErrorToTable(string link, string title)
         {
-            this.InsertPerformance(link);
+            /*
+             * to be determined
             string hashedLink = Hash(link);
             URLentity l = new URLentity(hashedLink)
             {
@@ -160,39 +183,8 @@ namespace ClassLibrary
                 URL = link
             };
             TableOperation insertOperation = TableOperation.Insert(l);
-            StorageManager.errorTable.Execute(insertOperation);
-        }
-
-        // Referenced Discussion Post: https://canvas.uw.edu/courses/1128815/discussion_topics/4177096
-        public List<string> GetLastTenPageTitle()
-        {
-            List<string> recentLinks = new List<string>();
-
-            string invertedTicks = string.Format("{0:D19}", DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks);
-            string fiveInvertedTicks = string.Format("{0:D19}", DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks + 900000000);
-
-
-            TableQuery<URLentity> rangeQuery = new TableQuery<URLentity>().Where(
-                TableQuery.CombineFilters(
-            TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.LessThan, fiveInvertedTicks),
-            TableOperators.And,
-            TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.GreaterThan, invertedTicks)));
-
-            foreach (URLentity link in StorageManager.urlTable.ExecuteQuery(rangeQuery))
-            {
-                if (recentLinks.Count >= 100)
-                    break;
-                recentLinks.Add(link.PageTitle + " | " + link.URL + " | " + link.Date);
-            }
-            recentLinks.Reverse();
-            List<string> lastTenLinks = new List<string>();
-            foreach (string l in recentLinks)
-            {
-                if (lastTenLinks.Count >= 10)
-                    break;
-                lastTenLinks.Add(l);
-            }
-            return lastTenLinks;
+            StorageManager.performanceTable.Execute(insertOperation);
+            */
         }
 
         public int? GetSizeOfURLQueue()
@@ -219,7 +211,7 @@ namespace ClassLibrary
         public string AddtoStartStopQueue(string messageToAdd)
         {
             CloudQueueMessage message = new CloudQueueMessage(messageToAdd);
-            StorageManagerr.startStopQueue.AddMessage(message);
+            StorageManager.startStopQueue.AddMessage(message);
             return messageToAdd;
         }
 
@@ -237,7 +229,5 @@ namespace ClassLibrary
             return hashString;
         }
     }
-
-
 }
-}
+
