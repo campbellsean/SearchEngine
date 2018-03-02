@@ -1,6 +1,7 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
+using MoreLinq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,18 +60,54 @@ namespace ClassLibrary
 
         public List<string> GetSearchResults(string searchTerm)
         {
+            searchTerm = searchTerm.ToLower();
             List<string> results = new List<string>();
+            List<WebEntity> allWebEntities = new List<WebEntity>();
 
-            // go word by word and get results
-
-            // for now we will try a simple query
-            TableQuery<WebEntity> query = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, searchTerm));
-
-            foreach (WebEntity entity in StorageManager.urlTable.ExecuteQuery(query))
+            string[] wordsInSearch = searchTerm.Split(' ');
+            foreach (string word in wordsInSearch)
             {
-                results.Add(entity.PageTitle + " | " + entity.Link);
+                TableQuery<WebEntity> wordQueries = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, word));
+                var currentWordResults = StorageManager.urlTable.ExecuteQuery(wordQueries);
+                foreach (WebEntity entity in currentWordResults)
+                {
+                    allWebEntities.Add(entity);
+                }
+            }
+
+            // var sortedWebEntities = allWebEntities.OrderBy(c => c.RowKey.Count());
+
+            var sortedWebEntities = allWebEntities.GroupBy(x => x.RowKey)
+                  .OrderByDescending(g => g.Count())
+                  .SelectMany(g => g).ToList()
+                  .DistinctBy(p => p.RowKey).Take(10)
+                  .OrderByDescending(p => p.Date);
+
+
+            //.ThenBy(n => n.Date); //.ToList();
+
+            foreach (WebEntity entity in sortedWebEntities)
+            {
+                results.Add("<a href=\"" + entity.Link + "\">" + entity.PageTitle + "</a><br />" + entity.Date + "<br /><br />");
             }
             return results;
+
+            // for now we will try a simple query
+            /*
+            TableQuery<WebEntity> query = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, searchTerm));
+
+            // for each word in the searchTerm
+            // get execute query results
+            var queryResults = StorageManager.urlTable.ExecuteQuery(query);
+            
+            foreach (WebEntity entity in queryResults)
+            {
+                results.Add("<a href=\"" + entity.Link + "\">" + entity.PageTitle + "</a><br />" + entity.Date + "<br /><br />");
+
+                // results.Add(entity.PageTitle + " | " + entity.Link);
+            }
+            */
+
         }
 
         public List<string> GetLastTenPerformance()
@@ -78,15 +115,15 @@ namespace ClassLibrary
             List<string> lastTenLinks = new List<string>();
             TableQuery<PerformanceEntity> tableQuery = new TableQuery<PerformanceEntity>().Take(1);
             var links = StorageManager.performanceTable.ExecuteQuery(tableQuery).ToList();
-            
+
             foreach (PerformanceEntity link in links)
             {
                 if (lastTenLinks.Count <= 10)
                 {
-                lastTenLinks.Add("Num Crawled: " + link.NumCrawled);
-                lastTenLinks.Add("Num Table Index" + link.NumIndex);
-                lastTenLinks.Add("Last Ten URL: " + link.LastTenCrawled);
-                lastTenLinks.Add("Last Ten Errors: " + link.LastTenErrors);
+                    lastTenLinks.Add("Num Crawled: " + link.NumCrawled);
+                    lastTenLinks.Add("Num Table Index" + link.NumIndex);
+                    lastTenLinks.Add("Last Ten URL: " + link.LastTenCrawled);
+                    lastTenLinks.Add("Last Ten Errors: " + link.LastTenErrors);
                 }
             }
             return lastTenLinks;
@@ -224,7 +261,7 @@ namespace ClassLibrary
                 sb.Append(c);
             return sb.ToString();
         }
-        
+
         /*
         public void AddPerformanceToTable(string link)
         {

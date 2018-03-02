@@ -107,6 +107,7 @@
     <Content Include="Admin.asmx" />
     <Content Include="dashboard.html" />
     <Content Include="index.html" />
+    <Content Include="sean_search_logo.png" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>

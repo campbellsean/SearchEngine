@@ -3,7 +3,7 @@
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <meta charset="utf-8" />
-    <title>HELLO!</title>
+    <title>Sean Search</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
 
 </head>
@@ -11,8 +11,9 @@
 
     <div class="container">
 
-    <h1>Sean Search</h1>
-
+        <div class="text-center">
+            <img src="sean_search_logo.png" alt="Sean Search Logo" />
+        </div>
 
         <form class="form-group" id="target">
             <input type="text" class="form-control" id="userurl" placeholder="Search...">
@@ -20,6 +21,7 @@
 
             <div id="pageresults"></div>
         </form>
+        
     </div>
 
 
@@ -27,7 +29,6 @@
 
         $(document).ready(function () {
 
-            // not on key up
             $('#target').submit(function (e) {
                 console.log("HEREEE");
                 e.preventDefault();
@@ -49,9 +50,7 @@
             });
 
         })
-
     </script>
-
 
 </body>
 </html>
