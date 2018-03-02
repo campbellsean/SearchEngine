@@ -1,10 +1,57 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <meta charset="utf-8" />
     <title>HELLO!</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+
 </head>
 <body>
+
+    <div class="container">
+
+    <h1>Sean Search</h1>
+
+
+        <form class="form-group" id="target">
+            <input type="text" class="form-control" id="userurl" placeholder="Search...">
+            <input type="submit" class="form-control mt-2" id="submitButton">
+
+            <div id="pageresults"></div>
+        </form>
+    </div>
+
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            // not on key up
+            $('#target').submit(function (e) {
+                console.log("HEREEE");
+                e.preventDefault();
+
+                let url = "{search:'" + $('#userurl').val() + "'}";
+
+                $.ajax({
+                    type: "POST",
+                    url: "Admin.asmx/GetResults",
+                    data: url,
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        console.log(myData);
+                        $("#pageresults").html(myData);
+                    }
+                })
+            });
+
+        })
+
+    </script>
+
 
 </body>
 </html>

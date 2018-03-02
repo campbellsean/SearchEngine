@@ -12,15 +12,18 @@ namespace ClassLibrary
         public PerformanceEntity(string url)
         {
             string invertedTicks = string.Format("{0:D19}", DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks);
-            // to order by insert use inverted ticks referenced MSFT design guide
             this.PartitionKey = invertedTicks;
             this.RowKey = url;
         }
 
         public PerformanceEntity() { }
 
-        public List<string> LastTenCrawled { get; set; }
+        public string LastTenCrawled { get; set; }
 
-        public List<string> LastTenErrors { get; set; }
+        public string LastTenErrors { get; set; }
+
+        public int NumCrawled { get; set; }
+
+        public int NumIndex { get; set; }
     }
 }

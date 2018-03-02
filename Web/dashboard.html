@@ -1,0 +1,191 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <meta charset="utf-8" />
+    <title>Web Spider Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+
+</head>
+<body>
+    <div class="container">
+
+        <h1>Web Spider Dashboard</h1>
+
+        <div class="container mb-3">
+            <div class="row">
+                <div class="col-sm">
+                    <button id="startcrawl" type="button" class="btn btn-primary mt-2">Start Crawling</button>
+                    <div id="start"></div>
+                    <br />
+                    <div class="col-sm">
+                    <button id="stopcrawl" type="button" class="btn btn-danger mt-2">Stop Crawling</button>
+                    <div id="start"></div>
+                </div>
+                    </div>
+                </div>
+                <!--
+        <div class="col-sm">
+            <button id="clearall" type="button" class="btn btn-danger mt-2">Clear All</button>
+            <div id="clear"></div>
+            <br />
+            Clear everything (index/table, queue/pipeline, stop all worker roles, please wait 5 minute after clicking before starting again)
+        </div>
+    </div>
+        -->
+                <div class="row mt-4">
+                    <div class="col-sm">
+                        <div id="urlqueue">Size of queue (#urls left in pipeline to be crawled):</div>
+                    </div>
+                    <div class="col-sm">
+                        <div id="tablesize">Size of index (table storage with our crawled data):</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container mb-3">
+                <div class="row">
+                    <div class="col-sm">
+                        <div id="state">State of Worker Role Crawler: </div>
+                    </div>
+                    <div class="col-sm">
+                        <div id="availableMB">RAM Available (mb): </div>
+                    </div>
+                    <div class="com-sm">
+                        <div id="CPU">CPU Utilization %: </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container mb-3">
+                <div class="row">
+                    <div class="col-sm">
+                        10 Recently Crawled URLs:
+
+                        <div id="tenResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+
+            $(document).ready(function () {
+
+                /*
+                not on key up!
+                $('#userurl').keyup(function () {
+                    let url = "{url:'" + $('#userurl').val() + "'}";
+
+                    $.ajax({
+                        type: "POST",
+                        url: "Admin.asmx/Search",
+                        data: url,
+                        contentType: "application/json; charset=utf-16",
+                        dataType: "json",
+                        success: function (data) {
+                            var myData = data.d;
+                            console.log(myData);
+                            $("#pageresults").html(myData);
+                        }
+                    })
+                });
+                */
+
+                $('#startcrawl').click(function () {
+                    $.ajax({
+                        type: "POST",
+                        url: "Admin.asmx/StartCrawling",
+                        contentType: "application/json; charset=utf-16",
+                        dataType: "json",
+                        success: function (data) {
+                            var myData = data.d;
+                            console.log(myData);
+                            $("#start").append(myData);
+                        }
+                    })
+                });
+
+                $('#stopcrawl').click(function () {
+                    $.ajax({
+                        type: "POST",
+                        url: "Admin.asmx/StopCrawling",
+                        contentType: "application/json; charset=utf-16",
+                        dataType: "json",
+                        success: function (data) {
+                            var myData = data.d;
+                            console.log(myData);
+                            $("#stop").append(myData);
+                        }
+                    })
+                });
+
+
+                $.ajax({
+                    type: "POST",
+                    url: "Admin.asmx/PerformanceUpdate",
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        console.log(myData);
+                        for (let i = 0; i < myData.length; i++) {
+                            $("#tenResults").append(myData[i]);
+                            $("#tenResults").append("<br>");
+                        }
+                    }
+                })
+
+                
+                $.ajax({
+                    type: "POST",
+                    url: "Admin.asmx/GetState",
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        console.log(myData);
+                        $("#state").append(myData);
+                    }
+                })
+                /*
+                $.ajax({
+                    type: "POST",
+                    url: "Admin.asmx/GetQueueLength",
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        console.log(myData);
+                        $("#urlqueue").append(myData);
+                    }
+                })
+                */
+                $.ajax({
+                    type: "POST",
+                    url: "Admin.asmx/GetAvailableMBytes",
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        console.log(myData);
+                        $("#availableMB").append(myData);
+                    }
+                })
+
+                $.ajax({
+                    type: "POST",
+                    url: "Admin.asmx/GetCPU",
+                    // data: ,
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        console.log(myData);
+                        $("#CPU").append(myData);
+                    }
+                })
+            })
+        </script>
+    </body>
+    </html>

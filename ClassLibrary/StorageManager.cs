@@ -28,6 +28,12 @@ namespace ClassLibrary
         private static CloudTable performanceTable;
         private static string performanceTableName = "performanceInformation";
 
+        private static int totalCrawled = 0;
+        private static int totalIndex = 0;
+        private static string[] lastTenCrawked = new string[10];
+        private static string[] lastTenErrors = new string[10];
+
+
         public StorageManager(CloudStorageAccount storageAccount)
         {
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
@@ -51,22 +57,39 @@ namespace ClassLibrary
             StorageManager.performanceTable.CreateIfNotExists();
         }
 
-        public void GetTenErrors()
+        public List<string> GetSearchResults(string searchTerm)
+        {
+            List<string> results = new List<string>();
+
+            // go word by word and get results
+
+            // for now we will try a simple query
+            TableQuery<WebEntity> query = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, searchTerm));
+
+            foreach (WebEntity entity in StorageManager.urlTable.ExecuteQuery(query))
+            {
+                results.Add(entity.PageTitle + " | " + entity.Link);
+            }
+            return results;
+        }
+
+        public List<string> GetLastTenPerformance()
         {
             List<string> lastTenLinks = new List<string>();
-            TableQuery<PerformanceEntity> tableQuery = new TableQuery<PerformanceEntity>().Take(10);
-
+            TableQuery<PerformanceEntity> tableQuery = new TableQuery<PerformanceEntity>().Take(1);
             var links = StorageManager.performanceTable.ExecuteQuery(tableQuery).ToList();
-            /*
+            
             foreach (PerformanceEntity link in links)
             {
-                if (lastTenLinks.Count >= 10)
-                    break;
-                lastTenLinks.Add(link.PageTitle + " | " + link.URL);
+                if (lastTenLinks.Count <= 10)
+                {
+                lastTenLinks.Add("Num Crawled: " + link.NumCrawled);
+                lastTenLinks.Add("Num Table Index" + link.NumIndex);
+                lastTenLinks.Add("Last Ten URL: " + link.LastTenCrawled);
+                lastTenLinks.Add("Last Ten Errors: " + link.LastTenErrors);
+                }
             }
             return lastTenLinks;
-            */
-            // return links;
         }
 
 
@@ -88,6 +111,21 @@ namespace ClassLibrary
             // StorageManager.xmlQueue.DeleteMessage(message);
             return message;
         }
+
+        /*
+        public void AddErrorToPerformance(string link, string title)
+        {
+            for (int i = 1; i < 9; i++)
+            {
+                lastTenErrors[i] = lastTenErrors[i - 1];
+            }
+            // shift down to clear 1
+            lastTenErrors[0] = (title + " | " + link);
+
+            AddPerformanceToTable(link);
+            StorageManager.totalCrawled++;
+        }
+        */
 
         public void DeleteXMLMessage(CloudQueueMessage message)
         {
@@ -130,8 +168,21 @@ namespace ClassLibrary
         // I think this will need to take in multiple values
         public void AddLinkToTableStorage(string link, string word, string title, DateTime date)
         {
+
+            // edit last ten performance
+            for (int i = 1; i < 9; i++)
+            {
+                lastTenCrawked[i] = lastTenCrawked[i - 1];
+            }
+            lastTenCrawked[0] = (title + " | " + link + " | " + date.ToString());
+
+            // this.AddPerformanceToTable(link);
+
+
             if (word.Length > 0)
             {
+                StorageManager.totalCrawled++;
+                StorageManager.totalIndex++;
                 WebEntity w = new WebEntity(this.ToAzureKeyString(word), this.Hash(link))
                 {
                     PageTitle = title,
@@ -157,6 +208,7 @@ namespace ClassLibrary
             this.AddLinkToTableStorage(link, word, title, new DateTime(2018, 2, 22));
         }
 
+        // From : https://stackoverflow.com/questions/14859405/azure-table-storage-returns-400-bad-request
         private string ToAzureKeyString(string str)
         {
             var sb = new StringBuilder();
@@ -166,26 +218,32 @@ namespace ClassLibrary
                             && c != '#'
                             && c != '/'
                             && c != '?'
+                            && c != ';'
+                            // apostrophe
                             && !char.IsControl(c)))
                 sb.Append(c);
             return sb.ToString();
         }
-
-        public void AddErrorToTable(string link, string title)
+        
+        /*
+        public void AddPerformanceToTable(string link)
         {
-            /*
-             * to be determined
-            string hashedLink = Hash(link);
-            URLentity l = new URLentity(hashedLink)
+            string hashedLink = this.Hash(link);
+
+            string lastTenCrawl = string.Join(",", StorageManager.lastTenCrawked.ToArray());
+            string lastTenError = string.Join(",", StorageManager.lastTenErrors.ToArray());
+
+            PerformanceEntity l = new PerformanceEntity(hashedLink)
             {
-                PageTitle = title,
-                Date = new DateTime(2018, 2, 21),
-                URL = link
+                LastTenCrawled = lastTenCrawl,
+                LastTenErrors = lastTenError,
+                NumIndex = StorageManager.totalIndex,
+                NumCrawled = StorageManager.totalCrawled
             };
             TableOperation insertOperation = TableOperation.Insert(l);
             StorageManager.performanceTable.Execute(insertOperation);
-            */
         }
+        */
 
         public int? GetSizeOfURLQueue()
         {

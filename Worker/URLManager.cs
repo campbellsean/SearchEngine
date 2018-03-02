@@ -90,13 +90,26 @@ namespace Worker
 
         public void ParseHTML(string link)
         {
-            HtmlWeb web = new HtmlWeb();
+            //HtmlWeb web = new HtmlWeb();
+            var web = new HtmlWeb()
+            {
+                PreRequest = request =>
+                {
+                    // Make any changes to the request object that will be used.
+                    request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+                    return true;
+                }
+            };
+
             WebClient w = new WebClient();
             WebException except = new WebException();
 
             try
             {
                 string s = w.DownloadString(link);
+
+
+
                 var htmlDoc = web.Load(link);
                 var node = htmlDoc.DocumentNode.Descendants("title").FirstOrDefault();
 
@@ -108,7 +121,7 @@ namespace Worker
 
                 if (title.Equals("Error"))
                 {
-                    sm.AddErrorToTable(link, title);
+                    //sm.AddErrorToPerformance(link, title);
                 }
                 else
                 {
@@ -119,30 +132,31 @@ namespace Worker
                         HtmlAttribute desc;
                         desc = mdnode.Attributes["content"];
                         string date = desc.Value;
+                        string[] wordsInTitle = title.Split(' ');
+
                         if (date.Length > 8)
                         {
-                            string[] wordsInTitle = title.Split(' ');
                             DateTime d = this.StringToDateTime(date);
                             // Go word by word and insert into the table
-                            for (int i = 0; i < wordsInTitle.Length - 2; i++)
+                            for (int i = 0; i < wordsInTitle.Length; i++)
                             {
                                 // To LowerCase
                                 string toAdd = wordsInTitle[i].ToLower();
                                 sm.AddLinkToTableStorage(link, toAdd, title, d);
                             }
                         }
-                    }
-                    else
-                    {
-                        string[] wordsInTitle = title.Split(' ');
-                        // Go word by word and insert into the table
-                        for (int i = 0; i < wordsInTitle.Length - 2; i++)
+                        else
                         {
-                            // ToLowerCase
-                            string toAdd = wordsInTitle[i].ToLower();
-                            sm.AddLinkToTableStorage(link, toAdd, title);
+                            // Go word by word and insert into the table
+                            for (int i = 0; i < wordsInTitle.Length; i++)
+                            {
+                                // ToLowerCase
+                                string toAdd = wordsInTitle[i].ToLower();
+                                sm.AddLinkToTableStorage(link, toAdd, title);
+                            }
                         }
                     }
+
                     // Extracting Links:
                     List<string> linksOnPage = this.ExtractAllAHrefTags(htmlDoc);
                     List<string> addToURLQueue = this.ExamineLinksOnPage(linksOnPage);
@@ -177,7 +191,7 @@ namespace Worker
                 }
                 // Checking to see if contained in hashset
                 // Adds if not contained
-                if (!URLManager.seenLinks.Contains(urlToAdd) && !URLManager.notAllowed.Contains(urlToAdd))
+                if (!URLManager.seenLinks.Contains(urlToAdd) && !URLManager.notAllowed.Contains(urlToAdd) && !urlToAdd.Contains("gzip"))
                 {
                     URLManager.seenLinks.Add(urlToAdd);
                     acceptableLinks.Add(urlToAdd);
