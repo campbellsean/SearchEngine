@@ -62,8 +62,64 @@
                     dataType: "jsonp",
                     success: function (data) {
 
+                        let splitName = data["Name"].split(" ");
+                        let firstName = splitName[0];
+                        let lastName = splitName[1];
+                        let image = "https://nba-players.herokuapp.com/players/" + lastName + "/" + firstName;
+
+                        console.log(firstName);
+                        console.log(lastName);
+
+
+
                         $("#playerMatch").html(
-                                data[0]
+
+                            "Name: " + data["Name"] + 
+                            "<br/>" + 
+                            "<img src=" + image + ">" + 
+                            "<br/>" + 
+                            "Team: " + data["Team"] +
+                            "<br/>" + 
+                            "Games Played: " + data["GP"] +
+                            "<br/>" + 
+                            "Avg Minutes Played: " + data["Min"] +
+                            "<br/>" + 
+                            "Missed FG: " + data["M-FG"] + 
+                            "<br/>" + 
+                            "Attempted FG: " + data["A-FG"] +
+                            "<br/>" + 
+                            "% Made FG: " + data["Pct-FG"] +
+                            "<br/>" + 
+                            "Missed 3PT: " + data["M-3PT"] +
+                            "<br/>" + 
+                            "Attempted 3PT: " + data["A-3PT"] +
+                            "<br/>" + 
+                            "% Made 3PT: " + data["Pct-3PT"] +
+                            "<br/>" + 
+                            "Missed FT: " + data["M-FT"] +
+                            "<br/>" + 
+                            "Attempted FT: " + data["A-FT"] +
+                            "<br/>" + 
+                            "% Made FT: " + data["Pct-FT"] +
+                            "<br/>" + 
+                            "Offensive Rb: " + data["Off-Rb"] +
+                            "<br/>" + 
+                            "Defensive Rb: " + data["Def-Rb"] +
+                            "<br/>" + 
+                            "Total Avg Rb: " + data["Tot-Rb"] +
+                            "<br/>" + 
+                            "Ast: " + data["Ast"] +
+                            "<br/>" + 
+                            "TO: " + data["TO"] +
+                            "<br/>" + 
+                            "Stl: " + data["Stl"] +
+                            "<br/>" + 
+                            "Blk: " + data["Blk"] +
+                            "<br/>" + 
+                            "PF: " + data["PF"] +
+                            "<br/>" + 
+                            "PPG: " + data["PPG"]
+
                         );
                     },
                     error: function (data) {
