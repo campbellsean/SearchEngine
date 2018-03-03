@@ -18,7 +18,7 @@
         <form class="form-group" id="target">
             <input type="text" class="form-control" id="userurl" placeholder="Search...">
             <input type="submit" class="form-control mt-2" id="submitButton">
-            <div id="playerMatch"></div>
+            <div class="container" id="playerMatch"></div>
             <div id="pageresults"></div>
         </form>
         
@@ -61,10 +61,18 @@
                     data: { name: $('#userurl').val() },
                     dataType: "jsonp",
                     success: function (data) {
-                        console.log(data);
 
-                        $("#playerMatch").html(data[0]);
-                    }
+                        $("#playerMatch").html(
+                                data[0]
+                        );
+                    },
+                    error: function (data) {
+                        // empty the HTML
+                        $("#playerMatch").html(
+                            ""
+                        );
+                    },
+
                 })
 
             });

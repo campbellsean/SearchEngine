@@ -76,15 +76,20 @@ namespace ClassLibrary
             }
 
             // var sortedWebEntities = allWebEntities.OrderBy(c => c.RowKey.Count());
-
-            var sortedWebEntities = allWebEntities.GroupBy(x => x.RowKey)
+            /*
+            var sortedWebEntities = allWebEntities.OrderByDescending(p => p.Date)
+                  .GroupBy(x => x.RowKey)
                   .OrderByDescending(g => g.Count())
                   .SelectMany(g => g).ToList()
-                  .DistinctBy(p => p.RowKey).Take(10)
-                  .OrderByDescending(p => p.Date);
-
-
-            //.ThenBy(n => n.Date); //.ToList();
+                  .DistinctBy(p => p.RowKey).Take(10);
+            */
+            
+            var sortedWebEntities = allWebEntities
+                  .GroupBy(x => x.RowKey)
+                  .Select(g => g.OrderByDescending(d => d.Date))
+                  .OrderByDescending(g => g.Count())
+                  .SelectMany(g => g).ToList()
+                  .DistinctBy(p => p.RowKey).Take(10);
 
             foreach (WebEntity entity in sortedWebEntities)
             {
