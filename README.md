@@ -3,18 +3,13 @@
 ## Website Link
 [Website](http://seancampbellsearch.cloudapp.net)
 
-## Screenshot
+## Screenshots
+#### Windows Azure Dashboard
 ![Windows Azure Dashboard](./dashboard.jpeg)
+#### Amazon AWS Dashboard
 ![Amazon AWS Dashboard](./awsdashboard.jpeg)
 
 ## Write up
-
-    [70pts] End-to-End experience – results page with URLs from crawler, NBA player stats (when relevant), query suggestion shows up correctly &quickly, dashboard, caching, monetization
-    [20pts] Code written in C# – C# best practices!
-
-    [10pts] Works on Azure & AWS, proper use of all infrastructure modules
-    (web roles, worker roles, table storage, queue storage, etc)
-
 End-to-End experience.
 - PA1: I had to edit my index.php file so that it only returned results when I had an exact match. I also had to add in special javascript in order to handle the JSONP received from the AWS instance.
 - PA2: I actually changed my PA2 the most. I implemented a hybrid list trie that was able to fit the entire wikipedia title dataset in about 400mb. This was fascinating how it effected the speed SO much. Adding the results to the search page just required me using a datalist.
