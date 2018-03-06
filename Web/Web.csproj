@@ -107,6 +107,7 @@
     <Content Include="Admin.asmx" />
     <Content Include="dashboard.html" />
     <Content Include="index.html" />
+    <Content Include="QuerySuggest.asmx" />
     <Content Include="sean_search_logo.png" />
     <Content Include="Web.config" />
   </ItemGroup>
@@ -115,7 +116,13 @@
       <DependentUpon>Admin.asmx</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="HybridNode.cs" />
+    <Compile Include="ListTrie.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QuerySuggest.asmx.cs">
+      <DependentUpon>QuerySuggest.asmx</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="WebRole.cs" />
   </ItemGroup>
   <ItemGroup>

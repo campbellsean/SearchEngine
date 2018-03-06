@@ -1,9 +1,11 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using MoreLinq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
@@ -29,10 +31,16 @@ namespace ClassLibrary
         private static CloudTable performanceTable;
         private static string performanceTableName = "performanceInformation";
 
+        private static CloudBlobContainer container;
+        private static string containerName = "wikidatabase";
+
         private static int totalCrawled = 0;
         private static int totalIndex = 0;
         private static string[] lastTenCrawked = new string[10];
         private static string[] lastTenErrors = new string[10];
+
+        private static Dictionary<string, List<string>> cachedResults = new Dictionary<string, List<string>>();
+        private static Queue<string> pastHundredSearches = new Queue<string>();
 
 
         public StorageManager(CloudStorageAccount storageAccount)
@@ -56,56 +64,79 @@ namespace ClassLibrary
             tableClient = storageAccount.CreateCloudTableClient();
             StorageManager.performanceTable = tableClient.GetTableReference(StorageManager.performanceTableName);
             StorageManager.performanceTable.CreateIfNotExists();
+
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+            StorageManager.container = blobClient.GetContainerReference(StorageManager.containerName);
+        }
+
+        public string GetTitlesContainer()
+        {
+            if (container.Exists())
+            {
+                foreach (IListBlobItem item in container.ListBlobs(null, false))
+                {
+                    if (item.GetType() == typeof(CloudBlockBlob))
+                    {
+                        CloudBlockBlob blob = (CloudBlockBlob)item;
+                        string fileLocation = System.IO.Path.GetTempFileName();
+                        blob.DownloadToFile(fileLocation, FileMode.Create);
+                        return fileLocation;
+                    }
+                }
+            }
+            return "Not successful";
         }
 
         public List<string> GetSearchResults(string searchTerm)
         {
             searchTerm = searchTerm.ToLower();
-            List<string> results = new List<string>();
+
+            if (cachedResults.ContainsKey(searchTerm))
+            {
+                return cachedResults[searchTerm];
+            }
+
+
+            // List<string> results = new List<string>();
             List<WebEntity> allWebEntities = new List<WebEntity>();
 
             string[] wordsInSearch = searchTerm.Split(' ');
+
+            
             foreach (string word in wordsInSearch)
             {
-                TableQuery<WebEntity> wordQueries = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, word));
-                var currentWordResults = StorageManager.urlTable.ExecuteQuery(wordQueries);
-                foreach (WebEntity entity in currentWordResults)
+                // if word does not contain CNN, slows down performance WAY too much
+                if (!word.Contains("cnn"))
                 {
-                    allWebEntities.Add(entity);
+                    TableQuery<WebEntity> wordQueries = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, word));
+                    var currentWordResults = StorageManager.urlTable.ExecuteQuery(wordQueries);
+                    foreach (WebEntity entity in currentWordResults)
+                    {
+                        allWebEntities.Add(entity);
+                    }
                 }
             }
 
-            // var sortedWebEntities = allWebEntities.OrderBy(c => c.RowKey.Count());
-            
-            var sortedWebEntities = allWebEntities.OrderByDescending(p => p.Date)
+            var sortedWebEntities = allWebEntities //.OrderByDescending(p => p.Date)
                   .GroupBy(x => x.RowKey)
-                  .OrderByDescending(g => g.Count())
-                  .SelectMany(g => g).ToList()
-                  .DistinctBy(p => p.RowKey).Take(10);
+                  .Select(x => new Tuple<WebEntity, int>(x.ToList().First(), x.ToList().Count))
+                  .OrderByDescending(x => x.Item2)
+                  .ThenByDescending(x => x.Item1.Date)
+                  .DistinctBy(x => x.Item1.PageTitle)
+                  .Take(10)
+                  .Select(x => "<a href=\"" + x.Item1.Link + "\">" + x.Item1.PageTitle + "</a><br />" + x.Item1.Date + "<br /><br />")
+                  .ToList();
 
-
-            foreach (WebEntity entity in sortedWebEntities)
+            if (cachedResults.Count >= 100)
             {
-                results.Add("<a href=\"" + entity.Link + "\">" + entity.PageTitle + "</a><br />" + entity.Date + "<br /><br />");
+                string resultToRemove = pastHundredSearches.Dequeue();
+                cachedResults.Remove(resultToRemove);
             }
-            return results;
+            // add result to queue and cache
+            pastHundredSearches.Enqueue(searchTerm);
+            cachedResults.Add(searchTerm, sortedWebEntities);
 
-            // for now we will try a simple query
-            /*
-            TableQuery<WebEntity> query = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, searchTerm));
-
-            // for each word in the searchTerm
-            // get execute query results
-            var queryResults = StorageManager.urlTable.ExecuteQuery(query);
-            
-            foreach (WebEntity entity in queryResults)
-            {
-                results.Add("<a href=\"" + entity.Link + "\">" + entity.PageTitle + "</a><br />" + entity.Date + "<br /><br />");
-
-                // results.Add(entity.PageTitle + " | " + entity.Link);
-            }
-            */
-
+            return sortedWebEntities;
         }
 
         public List<string> GetLastTenPerformance()
