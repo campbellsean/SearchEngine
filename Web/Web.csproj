@@ -109,6 +109,7 @@
     <Content Include="index.html" />
     <Content Include="QuerySuggest.asmx" />
     <Content Include="sean_search_logo.png" />
+    <Content Include="styles.css" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>

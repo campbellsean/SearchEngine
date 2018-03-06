@@ -1,0 +1,15 @@
+﻿#main {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 11;
+    background: transparent;
+}
+
+#autocomplete {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: transparent;
+    z-index: 10;
+}

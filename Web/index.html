@@ -5,9 +5,11 @@
     <meta charset="utf-8" />
     <title>Sean Search</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
-
+    <link rel="stylesheet" href="styles.css">
 
 </head>
+
+
 <body>
 
     <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
@@ -21,6 +23,8 @@
         (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
 
+
+
     <div class="container">
 
         <div class="text-center">
@@ -28,7 +32,10 @@
         </div>
 
         <form class="form-group" id="target">
-            <input type="text" class="form-control" id="userurl" placeholder="Search...">
+
+            <input type="text" class="form-control" id="searchInput" list="json-datalist" placeholder="Search...">
+            <datalist id="json-datalist"></datalist>
+
             <input type="submit" class="form-control mt-2" id="submitButton">
             <div class="container" id="playerMatch"></div>
             <div id="pageresults"></div>
@@ -41,11 +48,12 @@
 
         $(document).ready(function () {
 
+            // For searching:
             $('#target').submit(function (e) {
 
                 e.preventDefault();
 
-                let searchTerm = "{search:'" + $('#userurl').val() + "'}";
+                let searchTerm = "{search:'" + $('#searchInput').val() + "'}";
 
                 $.ajax({
                     type: "POST",
@@ -61,6 +69,39 @@
                 })
             });
 
+
+            // For query suggestions:
+            $('#searchInput').keyup(function (e) {
+
+                //console.log("HERE");
+                // make an AJAX call here to the query suggestions, fill in the datalist with options
+                let searchTerm = "{name:'" + $('#searchInput').val() + "'}";
+
+                $('#json-datalist').empty("");
+
+                $.ajax({
+                    type: "POST",
+                    url: "QuerySuggest.asmx/Search",
+                    data: searchTerm,
+                    contentType: "application/json; charset=utf-16",
+                    dataType: "json",
+                    success: function (data) {
+                        var myData = data.d;
+                        // console.log(myData);
+                        // I think I will need to for each and add them to the datalist
+                        for (var num in myData) {
+
+                            console.log(myData[num]);
+                            var option = document.createElement('option');
+                            option.value = myData[num];
+                            $('#json-datalist').append(option);
+
+                        }
+                    }
+                })
+            });
+
+            // For quick results:
             $('#target').submit(function (e) {
 
                 e.preventDefault();
@@ -70,7 +111,7 @@
                     crossDomain: true,
                     contentType: "application/json; charset=utf-8",
                     url: "http://ec2-18-222-66-196.us-east-2.compute.amazonaws.com/index.php",
-                    data: { name: $('#userurl').val() },
+                    data: { name: $('#searchInput').val() },
                     dataType: "jsonp",
                     success: function (data) {
 
@@ -140,11 +181,8 @@
                             ""
                         );
                     },
-
                 })
-
             });
-
         })
     </script>
 
