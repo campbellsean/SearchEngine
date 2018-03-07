@@ -1,0 +1,14 @@
+Explain How I Implemented Here:
+
+Website works – searching for player name works:
+I followed your instructions for setting up the EC2 and RDS. My biggest difficulty was getting the database set up. While working I used a lot of AWS instructions online. Lots of stack overflow articles and other resources to help me troubleshoot.
+
+Data is hosted on AWS RDS
+I got PHPmyAdmin running on a lab machine and connected to my RDS by editing the config file. After that I got rid of white space in the excel file and then uploaded to the RDS. That was the last time I used php my admin.
+
+Website written with PHP & MySQL – PHP best practices & OOP!
+I looked at a lot of resources and the best one was linked in your powerpoint slides. It explained the PDO and gave a good example for how to work with the data using php. When developing I used local host so I could test.
+
+Website runs on AWS EC2
+I connected to my EC2 using filezilla and then uploaded my php files!
+

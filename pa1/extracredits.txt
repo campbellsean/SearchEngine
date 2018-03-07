@@ -1,0 +1,5 @@
+Completed the Edit Distance and made search work gracefully.
+
+I used the Levenshtein function in PHP, as well as checking if the
+search word was contained in any of the players names.
+If the distance between the words in the Levenshtein function was not 0 (which would mean it was a perfect match) then I printed the closest player to the search.3
