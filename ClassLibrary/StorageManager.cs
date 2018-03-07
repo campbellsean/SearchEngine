@@ -36,8 +36,11 @@ namespace ClassLibrary
 
         private static int totalCrawled = 0;
         private static int totalIndex = 0;
-        private static string[] lastTenCrawked = new string[10];
-        private static string[] lastTenErrors = new string[10];
+        private static List<string> lastTenCrawked = new List<string>();
+        private static Queue<string> lastTenCrawledQueue = new Queue<string>();
+
+        private static List<string> lastTenErrors = new List<string>();
+        private static Queue<string> lastTenErrorsQueue = new Queue<string>();
 
         private static Dictionary<string, List<string>> cachedResults = new Dictionary<string, List<string>>();
         private static Queue<string> pastHundredSearches = new Queue<string>();
@@ -91,30 +94,30 @@ namespace ClassLibrary
         {
             searchTerm = searchTerm.ToLower();
 
+            if (searchTerm.Equals(""))
+            {
+                List<string> result = new List<string>();
+                result.Add("No Results");
+                return result;
+            }
+
             if (cachedResults.ContainsKey(searchTerm))
             {
                 return cachedResults[searchTerm];
             }
 
-
-            // List<string> results = new List<string>();
             List<WebEntity> allWebEntities = new List<WebEntity>();
 
             string[] wordsInSearch = searchTerm.Split(' ');
-
             
             foreach (string word in wordsInSearch)
             {
-                // if word does not contain CNN, slows down performance WAY too much
-                if (!word.Contains("cnn"))
-                {
                     TableQuery<WebEntity> wordQueries = new TableQuery<WebEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, word));
                     var currentWordResults = StorageManager.urlTable.ExecuteQuery(wordQueries);
                     foreach (WebEntity entity in currentWordResults)
                     {
                         allWebEntities.Add(entity);
                     }
-                }
             }
 
             var sortedWebEntities = allWebEntities //.OrderByDescending(p => p.Date)
@@ -124,7 +127,7 @@ namespace ClassLibrary
                   .ThenByDescending(x => x.Item1.Date)
                   .DistinctBy(x => x.Item1.PageTitle)
                   .Take(10)
-                  .Select(x => "<a href=\"" + x.Item1.Link + "\">" + x.Item1.PageTitle + "</a><br />" + x.Item1.Date + "<br /><br />")
+                  .Select(x => "<a id=\"biglink\" href=\"" + x.Item1.Link + "\">" + x.Item1.PageTitle + "</a> <br />" + x.Item1.Date.ToShortDateString() + "<br /> <font color=\"green\">" + x.Item1.Link + "</font> <br /><br />")
                   .ToList();
 
             if (cachedResults.Count >= 100)
@@ -133,8 +136,16 @@ namespace ClassLibrary
                 cachedResults.Remove(resultToRemove);
             }
             // add result to queue and cache
-            pastHundredSearches.Enqueue(searchTerm);
-            cachedResults.Add(searchTerm, sortedWebEntities);
+            if (!cachedResults.ContainsKey(searchTerm))
+            {
+                pastHundredSearches.Enqueue(searchTerm);
+                cachedResults.Add(searchTerm, sortedWebEntities);
+            }
+
+            if (sortedWebEntities.Count == 0)
+            {
+                sortedWebEntities.Add("No Results for " + searchTerm);
+            }
 
             return sortedWebEntities;
         }
@@ -150,7 +161,7 @@ namespace ClassLibrary
                 if (lastTenLinks.Count <= 10)
                 {
                     lastTenLinks.Add("Num Crawled: " + link.NumCrawled);
-                    lastTenLinks.Add("Num Table Index" + link.NumIndex);
+                    lastTenLinks.Add("Num Table Index: " + link.NumIndex);
                     lastTenLinks.Add("Last Ten URL: " + link.LastTenCrawled);
                     lastTenLinks.Add("Last Ten Errors: " + link.LastTenErrors);
                 }
@@ -162,7 +173,6 @@ namespace ClassLibrary
         public CloudQueueMessage GetNextURL()
         {
             CloudQueueMessage message = StorageManager.urlQueue.GetMessage(TimeSpan.FromMinutes(5));
-            // StorageManager.urlQueue.DeleteMessage(message);
             return message;
         }
 
@@ -174,24 +184,37 @@ namespace ClassLibrary
         public CloudQueueMessage GetNextXML()
         {
             CloudQueueMessage message = StorageManager.xmlQueue.GetMessage(TimeSpan.FromMinutes(5));
-            // StorageManager.xmlQueue.DeleteMessage(message);
             return message;
         }
 
-        /*
         public void AddErrorToPerformance(string link, string title)
         {
-            for (int i = 1; i < 9; i++)
+            lastTenErrorsQueue.Enqueue(title + " | " + link);
+            if (lastTenErrors.Count >= 9)
             {
-                lastTenErrors[i] = lastTenErrors[i - 1];
+                string removeError = StorageManager.lastTenErrorsQueue.Dequeue();
+                lastTenErrors.Remove(removeError);
             }
-            // shift down to clear 1
-            lastTenErrors[0] = (title + " | " + link);
-
-            AddPerformanceToTable(link);
+            lastTenErrors.Add(title + " | " + link);
             StorageManager.totalCrawled++;
+            this.AddPerformanceToTable(link);
         }
-        */
+
+        public void AddLinkToPerformance(string link, string title)
+        {
+            lastTenCrawledQueue.Enqueue(title + " | " + link + "<br />");
+            if (lastTenCrawked.Count >= 9)
+            {
+                string toRemove = lastTenCrawledQueue.Dequeue();
+                lastTenCrawked.Remove(toRemove);
+            }
+            lastTenCrawked.Add(title + " | " + link + "<br />");
+
+            StorageManager.totalCrawled++;
+            StorageManager.totalIndex++;
+
+            this.AddPerformanceToTable(link);
+        }
 
         public void DeleteXMLMessage(CloudQueueMessage message)
         {
@@ -216,7 +239,6 @@ namespace ClassLibrary
 
         public void AddToURLQueue(string messageToAdd)
         {
-            // Checks for well formed URI
             if ((Uri.IsWellFormedUriString(messageToAdd, UriKind.Absolute)))
             {
                 CloudQueueMessage message = new CloudQueueMessage(messageToAdd);
@@ -230,25 +252,10 @@ namespace ClassLibrary
             StorageManager.xmlQueue.AddMessage(message);
         }
 
-        // Adds link to Table Storage
-        // I think this will need to take in multiple values
         public void AddLinkToTableStorage(string link, string word, string title, DateTime date)
         {
-
-            // edit last ten performance
-            for (int i = 1; i < 9; i++)
-            {
-                lastTenCrawked[i] = lastTenCrawked[i - 1];
-            }
-            lastTenCrawked[0] = (title + " | " + link + " | " + date.ToString());
-
-            // this.AddPerformanceToTable(link);
-
-
             if (word.Length > 0)
             {
-                StorageManager.totalCrawled++;
-                StorageManager.totalIndex++;
                 WebEntity w = new WebEntity(this.ToAzureKeyString(word), this.Hash(link))
                 {
                     PageTitle = title,
@@ -262,8 +269,7 @@ namespace ClassLibrary
                 }
                 catch
                 {
-                    // except = e;
-                    // log these errors in the error table
+                    this.AddErrorToPerformance(link, "Catched Error");
                 }
             }
         }
@@ -285,17 +291,19 @@ namespace ClassLibrary
                             && c != '/'
                             && c != '?'
                             && c != ';'
-                            // apostrophe
+                            && c != ','
+                            && c != '"'
+                            && c != '('
+                            && c != ')'
+                            && c != '\''
                             && !char.IsControl(c)))
                 sb.Append(c);
             return sb.ToString();
         }
 
-        /*
-        public void AddPerformanceToTable(string link)
+        private void AddPerformanceToTable(string link)
         {
             string hashedLink = this.Hash(link);
-
             string lastTenCrawl = string.Join(",", StorageManager.lastTenCrawked.ToArray());
             string lastTenError = string.Join(",", StorageManager.lastTenErrors.ToArray());
 
@@ -309,7 +317,6 @@ namespace ClassLibrary
             TableOperation insertOperation = TableOperation.Insert(l);
             StorageManager.performanceTable.Execute(insertOperation);
         }
-        */
 
         public int? GetSizeOfURLQueue()
         {

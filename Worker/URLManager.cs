@@ -17,9 +17,6 @@ namespace Worker
         private static HashSet<string> seenLinks = new HashSet<string>();
         private static HashSet<string> seenXMLs = new HashSet<string>();
         private static List<string> notAllowed = new List<string>();
-
-        // keep track of the last 10 links crawled and last 10 errors
-
         private StorageManager sm;
         
         public URLManager(StorageManager s)
@@ -121,7 +118,7 @@ namespace Worker
 
                 if (title.Equals("Error"))
                 {
-                    //sm.AddErrorToPerformance(link, title);
+                    sm.AddErrorToPerformance(link, title);
                 }
                 else
                 {
@@ -157,7 +154,9 @@ namespace Worker
                         }
                     }
 
+                    sm.AddLinkToPerformance(link, title);
                     // Extracting Links:
+
                     List<string> linksOnPage = this.ExtractAllAHrefTags(htmlDoc);
                     List<string> addToURLQueue = this.ExamineLinksOnPage(linksOnPage);
                     this.AddToURLQueue(addToURLQueue);
@@ -166,7 +165,7 @@ namespace Worker
             catch (WebException e)
             {
                 except = e;
-                // log these errors in the error table
+                sm.AddErrorToPerformance(e.ToString(), "Catched Error");
             }
         }
 

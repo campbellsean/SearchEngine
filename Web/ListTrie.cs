@@ -80,7 +80,6 @@ namespace Web
                 }
             }
 
-
             List<string> resultsNoUnderscore = new List<string>();
             foreach (string s in results)
             {

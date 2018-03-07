@@ -60,22 +60,26 @@ namespace Web
         [WebMethod]
         public string BuildTrieMemory()
         {
-            string currentTitle = "";
-            int i = 0;
-            using (StreamReader sr = new StreamReader(QuerySuggest.fileLocation))
+            if (QuerySuggest.fileLocation != null)
             {
-                while (!sr.EndOfStream)
+                string currentTitle = "";
+                int i = 0;
+                using (StreamReader sr = new StreamReader(QuerySuggest.fileLocation))
                 {
-                    if (i % 1000 == 0 && this.GetAvailableMBytes() < 100)
+                    while (!sr.EndOfStream)
                     {
-                        return i.ToString() + " " + sr.ReadLine();
+                        if (i % 1000 == 0 && this.GetAvailableMBytes() < 100)
+                        {
+                            return i.ToString() + " " + sr.ReadLine();
+                        }
+                        i++;
+                        currentTitle = sr.ReadLine();
+                        t.Add(currentTitle);
                     }
-                    i++;
-                    currentTitle = sr.ReadLine();
-                    t.Add(currentTitle);
+                    return currentTitle + this.GetAvailableMBytes();
                 }
-                return currentTitle + this.GetAvailableMBytes();
             }
+            return "Please download wiki";
         }
     }
 }

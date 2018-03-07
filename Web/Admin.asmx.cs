@@ -74,6 +74,12 @@ namespace Web
         }
 
         [WebMethod]
+        public int? GetQueueLength()
+        {
+            return sm.GetSizeOfURLQueue();
+        }
+
+        [WebMethod]
         public string GetState()
         {
             if (sm.GetSizeOfXMLQueue() != 0)
