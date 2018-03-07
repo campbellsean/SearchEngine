@@ -1,13 +1,16 @@
 # INFO 344 PA 2
+A search engine built off of crawling CNN.com and BleacherReport.com. A special thank you to CK and Chris for all of the help.
 
 ## Website Link
-[Website](http://seancampbellsearch.cloudapp.net)
+[Live Search Website](http://seancampbellsearch.cloudapp.net) feel free to visit ./dashboard to view up to date stats about crawling and errors.
 
 ## Screenshots
 #### Windows Azure Dashboard
 ![Windows Azure Dashboard](./dashboard.jpeg)
 #### Amazon AWS Dashboard
 ![Amazon AWS Dashboard](./awsdashboard.jpeg)
+#### Search App index.html
+![Search Index](./mysearchapp.jpeg)
 
 ## Write up
 End-to-End experience.
