@@ -2,7 +2,7 @@
 A search engine built off of crawling CNN.com and BleacherReport.com. A special thank you to CK and Chris for all of the help.
 
 ## Website Link
-[Live Search Website](http://seancampbellsearch.cloudapp.net) feel free to visit ./dashboard to view up to date stats about crawling and errors.
+[Live Search Website](http://seancsearch.cloudapp.net/) feel free to visit ./dashboard to view up to date stats about crawling and errors.
 
 ## Screenshots
 #### Windows Azure Dashboard
